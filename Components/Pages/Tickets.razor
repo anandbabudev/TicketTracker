@@ -1,0 +1,81 @@
+@page "/tickets"
+@rendermode InteractiveServer
+@inject TicketService TicketService
+@using TicketTracker.Data
+@using TicketTracker.Services
+
+<h3>🎫 Ticket Tracker</h3>
+
+<button class="btn btn-primary mb-3" @onclick="AddTicket">Add Ticket</button>
+
+@if (tickets == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!tickets.Any())
+{
+    <p>No tickets found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in tickets)
+            {
+                <tr>
+                    <td>@t.Title</td>
+                    <td>@t.Status</td>
+                    <td>@t.CreatedAt.ToShortDateString()</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" @onclick="() => NextStatus(t)">Next</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Ticket>? tickets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tickets = await TicketService.GetAllAsync();
+        Console.WriteLine("Tickets loaded: " + tickets.Count);
+    }
+
+    private async Task AddTicket()
+    {
+        var newTicket = new Ticket { Title = "New Ticket", Description = "Issue details" };
+        await TicketService.AddAsync(newTicket);
+        tickets = await TicketService.GetAllAsync();
+    }
+
+    private async Task NextStatus(Ticket ticket)
+    {
+        ticket.Status = ticket.Status switch
+        {
+            "Open" => "In Progress",
+            "In Progress" => "Resolved",
+            "Resolved" => "Closed",
+            _ => "Open"
+        };
+        await TicketService.UpdateAsync(ticket);
+        tickets = await TicketService.GetAllAsync();
+    }
+
+    private async Task Delete(int id)
+    {
+        await TicketService.DeleteAsync(id);
+        tickets = await TicketService.GetAllAsync();
+    }
+}
