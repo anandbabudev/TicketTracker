@@ -7,7 +7,73 @@
 <h3>🎫 Ticket Tracker</h3>
 
 <button class="btn btn-primary mb-3" @onclick="AddTicket">Add Ticket</button>
+<div class="row mb-3">
+    <div class="col">
+        <input class="form-control" placeholder="Search title or description..."
+               @bind="SearchQuery" @bind:event="oninput" />
+    </div>
+    <div class="col-auto">
+        <select class="form-select" @bind="StatusFilter">
+            <option>All</option>
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+            <option>Closed</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-secondary" @onclick="ClearFilters">Clear</button>
+    </div>
+</div>
 
+@code {
+    private string searchQuery = string.Empty;
+    private string statusFilter = "All";
+
+    private string SearchQuery
+    {
+        get => searchQuery;
+        set
+        {
+            if (searchQuery == value) return;
+            searchQuery = value;
+            _ = ApplyFilterAsync();
+        }
+    }
+
+    private string StatusFilter
+    {
+        get => statusFilter;
+        set
+        {
+            if (statusFilter == value) return;
+            statusFilter = value;
+            _ = ApplyFilterAsync();
+        }
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        // Always fetch fresh data to avoid stale results after CRUD operations
+        var all = await TicketService.GetAllAsync();
+        tickets = all
+            .Where(t =>
+                (string.IsNullOrWhiteSpace(SearchQuery)
+                    || (t.Title?.IndexOf(SearchQuery, StringComparison.OrdinalIgnoreCase) >= 0)
+                    || (t.Description?.IndexOf(SearchQuery, StringComparison.OrdinalIgnoreCase) >= 0))
+                && (StatusFilter == "All" || t.Status == StatusFilter))
+            .ToList();
+
+        StateHasChanged();
+    }
+
+    private Task ClearFilters()
+    {
+        SearchQuery = string.Empty;
+        StatusFilter = "All";
+        return Task.CompletedTask;
+    }
+}
 @if (tickets == null)
 {
     <p><em>Loading...</em></p>

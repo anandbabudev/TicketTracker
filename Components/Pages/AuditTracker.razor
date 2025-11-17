@@ -1,0 +1,477 @@
+@page "/viewaudittickets"
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Audit Tracking UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f6f7;
+            --card: #ffffff;
+            --muted: #6b6f76;
+            --accent: #00a78e;
+            /* green */
+            --accent-2: #3b82f6;
+            /* blue-ish for in-transit */
+            --step-line: #e6e7e9;
+            --yellow: #ffd33d;
+            --round: 14px;
+            --shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: #222
+        }
+
+        /* TOP STEPS */
+        .steps {
+            background: transparent;
+            padding: 18px 0 32px;
+        }
+
+        .steps-inner {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 24px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step .icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, var(--card), #F6F8F9);
+            box-shadow: var(--shadow);
+            margin: 0 auto 8px auto;
+            border: 4px solid var(--step-line);
+        }
+
+        .step.active .icon {
+            border-color: var(--accent);
+            box-shadow: 0 6px 18px rgba(0, 167, 142, 0.18)
+        }
+
+        .step.in-transit .icon {
+            border-color: var(--accent-2);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.12)
+        }
+
+        .step label {
+            display: block;
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px
+        }
+
+        .step small {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 6px
+        }
+
+        /* connecting line under icons */
+        .step::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            right: -50%;
+            top: 46px;
+            height: 8px;
+            background: var(--step-line);
+            transform: translateX(50%);
+            z-index: -1;
+        }
+
+        .steps .step:last-child::after {
+            display: none;
+        }
+
+        /* STATS / DETAILS CARD */
+        .card {
+            background: var(--card);
+            border-radius: var(--round);
+            box-shadow: var(--shadow);
+            padding: 22px;
+            margin-top: 18px;
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+        }
+
+        .card .left {
+            min-width: 360px;
+        }
+
+        .card h2 {
+            margin: 0 0 12px 0;
+            font-weight: 700;
+            color: #162029
+        }
+
+        .info-row {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0
+        }
+
+        .info-label {
+            width: 140px;
+            color: var(--muted);
+            font-weight: 600
+        }
+
+        .info-value {
+            color: #1f2937
+        }
+
+        .address {
+            white-space: pre-line
+        }
+
+        /* TIMELINE */
+        .section-title {
+            font-size: 22px;
+            margin: 36px 0 18px 0;
+            color: #233042;
+            font-weight: 700
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 48px;
+            border-left: 2px solid rgba(20, 25, 30, 0.04);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 18px 24px 18px 28px;
+            margin-bottom: 18px;
+            background: transparent;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .timeline-item .left {
+            max-width: 65%;
+        }
+
+        .timeline-item .title {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 6px
+        }
+
+        .timeline-item .desc {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px
+        }
+
+        .timeline-item .meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .timeline-item .meta svg {
+            opacity: 0.7
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -35px;
+            top: 24px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #d1d5db;
+            border: 6px solid var(--card);
+            box-shadow: 0 2px 6px rgba(16, 24, 40, 0.06);
+        }
+
+        .timeline-item.current::before {
+            background: var(--accent-2);
+            border-color: var(--card);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.12);
+        }
+
+        .timeline-item .time {
+            color: var(--muted);
+            font-size: 13px;
+            text-align: right;
+            white-space: nowrap;
+            min-width: 170px
+        }
+
+        /* small helper visuals like pin icon line */
+        .muted-line {
+            height: 6px;
+            width: 100px;
+            background: var(--yellow);
+            border-radius: 6px;
+            margin-top: 10px;
+            opacity: 0.95
+        }
+
+        /* responsiveness */
+        @@media (max-width:900px) {
+            .card {
+                flex-direction: column
+            }
+
+            .timeline-item {
+                flex-direction: column;
+                align-items: flex-start
+            }
+
+            .timeline {
+                padding-left: 36px
+            }
+
+            .timeline-item .time {
+                align-self: flex-end;
+                margin-top: 10px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <!-- Steps -->
+        <div class="steps">
+            <div class="steps-inner" role="list" aria-label="Audit Tracking Steps">
+            <div class="step" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+                    stroke="#00a78e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                </div>
+                <label>Account Fetched</label>
+                <small>Audit request received and account details retrieved</small>
+            </div>
+
+            <div class="step active" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M9.5 12.5l1.75 1.75L15 10.5" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                </svg>
+                </div>
+                <label>1st Level Audit</label>
+                <small>Initial audit verification completed</small>
+            </div>
+
+            <div class="step" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M9.5 12.5l1.75 1.75L15 10.5" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                </svg>
+                </div>
+                <label>2nd Level Audit</label>
+                <small>Secondary audit verification completed</small>
+            </div>
+
+            <div class="step" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M9.5 12.5l1.75 1.75L15 10.5" stroke="#00a78e" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                </svg>
+                </div>
+                <label>3rd Level Audit</label>
+                <small>Tertiary audit verification completed</small>
+            </div>
+            <div class="step" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Magnifier / review icon -->
+                    <circle cx="11" cy="11" r="4.2" stroke="#3b82f6" stroke-width="1.6" stroke-linecap="round"
+                    stroke-linejoin="round" fill="none" />
+                    <path d="M20 20l-3.2-3.2" stroke="#3b82f6" stroke-width="1.6" stroke-linecap="round"
+                    stroke-linejoin="round" fill="none" />
+                </svg>
+                </div>
+                <label>Rebuttal In-Progress</label>
+                <small>Rebuttal submitted and currently under review</small>
+            </div>
+
+            <div class="step" role="listitem">
+                <div class="icon" aria-hidden>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Document / final approval icon -->
+                    <path d="M7 3h7l4 4v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#94a3b8"
+                    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M9.5 12.5l1.75 1.75L14 11.5" stroke="#94a3b8" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                </svg>
+                </div>
+                <label>Audited</label>
+                <small>Final audit completed and account closed</small>
+            </div>
+
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="card" role="region" aria-label="Account details">
+            <div class="left">
+                <h2>Account details</h2>
+
+                <div class="info-row">
+                    <div class="info-label">Account number:</div>
+                    <div class="info-value">Acc0002398</div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">Agent name:</div>
+                    <div class="info-value address">Kishor</div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">Production date:</div>
+                    <div class="info-value">Nov 3, 2025 9:03 PM</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tracking history -->
+        <div>
+            <div class="section-title">Tracking history</div>
+
+            <div class="timeline" role="list" aria-label="Tracking events">
+                <!-- Event 1 -->
+                <div class="timeline-item " role="listitem">
+                    <div class="left">
+                        <div class="title">Account Fetched</div>
+                        <div class="desc">Audit request received and account details retrieved</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+                                    stroke="#9aa3ae" stroke-width="1.2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            <div>Account Acc0002398 - Agent: Kishor</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 3, 2025 9:03 PM</div>
+                </div>
+
+                <!-- Event 2 -->
+                <div class="timeline-item current" role="listitem">
+                    <div class="left">
+                        <div class="title">1st Level Audit</div>
+                        <div class="desc">Initial audit verification completed</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#9aa3ae"
+                                    stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>Level 1 Audit - Passed</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 4, 2025 9:03 PM</div>
+                </div>
+
+                <!-- Event 3 -->
+                <div class="timeline-item" role="listitem">
+                    <div class="left">
+                        <div class="title">2nd Level Audit</div>
+                        <div class="desc">Secondary audit verification completed</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#9aa3ae"
+                                    stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>Level 2 Audit - Passed</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 5, 2025 9:03 PM</div>
+                </div>
+                <!-- Event 4 -->
+                <div class="timeline-item" role="listitem">
+                    <div class="left">
+                        <div class="title">3rd Level Audit</div>
+                        <div class="desc">Tertiary audit verification completed</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2l6 4v6c0 5-4 9-6 10-2-1-6-5-6-10V6l6-4z" stroke="#9aa3ae"
+                                    stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>Level 3 Audit - Passed</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 6, 2025 9:03 PM</div>
+                </div>
+                <!-- Event 5 -->
+                <div class="timeline-item" role="listitem">
+                    <div class="left">
+                        <div class="title">Rebuttal In-Progress</div>
+                        <div class="desc">Rebuttal submitted and currently under review by the audit team</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <circle cx="11" cy="11" r="4.2" stroke="#9aa3ae" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M20 20l-3.2-3.2" stroke="#9aa3ae" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>Rebuttal - Under review</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 7, 2025 2:30 PM</div>
+                </div>
+
+                <!-- Event 6 -->
+                <div class="timeline-item" role="listitem">
+                    <div class="left">
+                        <div class="title">Audited</div>
+                        <div class="desc">Final audit completed and account closed</div>
+                        <div class="meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M7 3h7l4 4v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#9aa3ae" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9.5 12.5l1.75 1.75L14 11.5" stroke="#9aa3ae" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>Final Audit - Closed</div>
+                        </div>
+                    </div>
+                    <div class="time">Nov 8, 2025 11:00 AM</div>
+                </div>
+                <!-- You can add more items similarly -->
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
